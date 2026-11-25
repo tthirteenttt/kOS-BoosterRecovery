@@ -183,6 +183,12 @@ IF initial_state = "ST_AERO_GLIDE" {
     configure_steering_manager(sm_cfg).
 }
 init_engine_manager(act_cfg["ENGINE_MODE_AT_START"]).
+// Ensure booster RCS modules are armed (guards against rapid staging < 0.2 s after MECO)
+FOR rcs_item IN SHIP:RCS {
+    IF NOT rcs_item:ENABLED {
+        SET rcs_item:ENABLED TO TRUE.
+    }
+}
 IF recovery_mode = "RTLS" AND initial_state = "ST_FLIP" {
     SET STEERINGMANAGER:MAXSTOPPINGTIME TO 4.5.
     SET STEERINGMANAGER:PITCHTS TO 1.8.

@@ -104,6 +104,7 @@ SWITCH TO 0.
 RUN ascent.
 ```
 - If `LAN_MODE = "FIXED"`, auto-warps safely to the launch window and cancels warp before ignition.
+- Once Stage 1 ignites, **manually press `SPACE` to release the launch tower / clamps as soon as possible** so liftoff timing and fuel burn match `estimate.ks` predictions.
 - Executes gravity turn with FAR AoA protection and cuts off at `MECO_MASS`.
 - Press `SPACE` to separate Stage 1; Stage 2 automatically performs 2.0 s RCS ullage clearance, ignites MVac, and guides to SECO via closed-loop UPEG.
 
@@ -127,6 +128,8 @@ RUN recovery.
 ### Known Issues
 - **Crew/Cargo Dragon Payloads (`estimate.ks`)**: When launching a Dragon capsule as the payload, the ASDS coordinates predicted by `estimate.ks` are not reliable due to aerodynamic/mass-topology differences from standard fairing stacks. Use **RTLS mode** for Dragon missions (consistent with real-world Dragon flights; no fix is planned).
 - **High Gravity Losses on Certain Profiles**: Certain combinations of target inclination and open-loop ascent pitch profile (`TARGET_PITCH_END`, `PITCH_END_ALT`, `PITCH_CURVE_EXP`) can result in higher-than-nominal Stage 2 gravity losses. Adjust `TARGET_PITCH_END` and `MECO_MASS` using `estimate.ks` envelope feedback.
+- **Stowed Grid Fin Deflection**: Stage 1 grid fins can still deflect and generate aerodynamic torque even when folded/stowed (inherent to the KRE/FAR control-surface setup).
+- **High Physics Warp Accuracy Degradation**: Excessive physics warp multipliers (e.g., `3x`–`4x`) can reduce both Stage 1 booster recovery precision and Stage 2 orbital insertion accuracy (and induce structural oscillation on multi-part payloads). Staying within `1x`–`2x` physics warp is recommended (`ascent.ks` also auto-drops physics warp to `1x` if a Stage 2 attitude upset is detected).
 
 ---
 
@@ -142,3 +145,4 @@ RUN recovery.
 
 - Released under the **MIT License** (see [LICENSE](LICENSE)).
 - Includes modified grid fin and RO configurations based on **Kerbal Reusability Expansion (KRE)** by EmbersArc (MIT License).
+- Developed with assistance from **Google Gemini** for GNC modeling, flight debugging, and documentation.

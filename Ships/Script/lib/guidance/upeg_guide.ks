@@ -304,9 +304,13 @@ FUNCTION step_upeg_guidance {
     LOCAL u_theta IS SQRT(MAX(0.05, 1.0 - u_r * u_r - u_h * u_h)).
     LOCAL raw_steer IS (downrange_unit * u_theta + r_unit * u_r + h_horiz * u_h):NORMALIZED.
 
-    // 8. First-order low-pass attitude smoothing
+    // 8. Time-step invariant first-order low-pass attitude smoothing (tau = 0.12 s)
     LOCAL prev_steer IS upeg_state["prev_steer"].
-    LOCAL smoothed_steer IS (prev_steer * 0.65 + raw_steer * 0.35):NORMALIZED.
+    LOCAL steer_alpha IS clamp(1.0 - (CONSTANT:E ^ (-MAX(0.005, dt) / 0.12)), 0.08, 0.85).
+    LOCAL smoothed_steer IS safe_normalize(
+        prev_steer * (1.0 - steer_alpha) + raw_steer * steer_alpha,
+        raw_steer
+    ).
     SET upeg_state["prev_steer"] TO smoothed_steer.
 
     // 9. SECO energy & velocity convergence check (with 1-tick lead compensation)

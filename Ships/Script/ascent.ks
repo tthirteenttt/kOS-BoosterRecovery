@@ -55,26 +55,59 @@ FUNCTION configure_s1_ascent_steering {
     SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO -1.0.
 }
 
+FUNCTION disable_s2_gimbal_roll {
+    FOR eng_item IN SHIP:ENGINES {
+        IF eng_item:HASGIMBAL {
+            SET eng_item:GIMBAL:ROLL TO FALSE.
+        }
+    }
+}
+
+// Suppress staged S1 RCS modules during ascent burn so passive mods (e.g. MechJeb AutoRCSUllaging)
+// cannot re-enable RCS during engine spool-up; track exact part UIDs to restore safely at MECO.
+FUNCTION suppress_active_rcs_modules {
+    PARAMETER suppressed_uids.
+    FOR rcs_item IN SHIP:RCS {
+        IF rcs_item:ENABLED {
+            SET rcs_item:ENABLED TO FALSE.
+            IF NOT suppressed_uids:CONTAINS(rcs_item:UID) {
+                suppressed_uids:ADD(rcs_item:UID).
+            }
+        }
+    }
+}
+
+FUNCTION restore_suppressed_rcs_modules {
+    PARAMETER suppressed_uids.
+    IF suppressed_uids:LENGTH = 0 { RETURN. }
+    FOR rcs_item IN SHIP:RCS {
+        IF suppressed_uids:CONTAINS(rcs_item:UID) {
+            SET rcs_item:ENABLED TO TRUE.
+        }
+    }
+    suppressed_uids:CLEAR().
+}
+
 FUNCTION configure_s2_upeg_steering {
     STEERINGMANAGER:RESETPIDS().
-    SET STEERINGMANAGER:MAXSTOPPINGTIME TO 1.0.
-    SET STEERINGMANAGER:PITCHTS TO 2.2.
-    SET STEERINGMANAGER:YAWTS TO 2.2.
-    SET STEERINGMANAGER:ROLLTS TO 6.0.
+    SET STEERINGMANAGER:MAXSTOPPINGTIME TO 2.0.
+    SET STEERINGMANAGER:PITCHTS TO 3.0.
+    SET STEERINGMANAGER:YAWTS TO 3.0.
+    SET STEERINGMANAGER:ROLLTS TO 4.0.
 
     SET STEERINGMANAGER:PITCHPID:KP TO 1.0.
     SET STEERINGMANAGER:YAWPID:KP TO 1.0.
-    SET STEERINGMANAGER:PITCHPID:KI TO 0.0.
-    SET STEERINGMANAGER:YAWPID:KI TO 0.0.
-    SET STEERINGMANAGER:PITCHPID:KD TO 0.25.
-    SET STEERINGMANAGER:YAWPID:KD TO 0.25.
+    SET STEERINGMANAGER:PITCHPID:KI TO 0.05.
+    SET STEERINGMANAGER:YAWPID:KI TO 0.05.
+    SET STEERINGMANAGER:PITCHPID:KD TO 0.0.
+    SET STEERINGMANAGER:YAWPID:KD TO 0.0.
 
     SET STEERINGMANAGER:ROLLPID:KP TO 0.15.
     SET STEERINGMANAGER:ROLLPID:KI TO 0.0.
     SET STEERINGMANAGER:ROLLPID:KD TO 0.0.
-    SET STEERINGMANAGER:ROLLTORQUEFACTOR TO 5.0.
-    SET STEERINGMANAGER:TORQUEEPSILONMIN TO 0.008.
-    SET STEERINGMANAGER:TORQUEEPSILONMAX TO 0.025.
+    SET STEERINGMANAGER:ROLLTORQUEFACTOR TO 1.5.
+    SET STEERINGMANAGER:TORQUEEPSILONMIN TO 0.02.
+    SET STEERINGMANAGER:TORQUEEPSILONMAX TO 0.05.
     SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO -1.0.
 }
 
@@ -144,6 +177,10 @@ IF profile["USE_TARGET_AZIMUTH"] {
 LOCAL old_ipu IS CONFIG:IPU.
 SET CONFIG:IPU TO 2000.
 
+LOCAL s1_suppressed_rcs IS LIST().
+suppress_active_rcs_modules(s1_suppressed_rcs).
+IF RCS { RCS OFF. }
+
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.0.
 configure_s1_ascent_steering().
 SET ascent_throttle TO 0.0.
@@ -167,14 +204,19 @@ LOCAL s2_ignited IS FALSE.
 LOCAL cmd_pitch_smooth IS 90.0.
 LOCAL fairing_reminded IS FALSE.
 LOCAL wait_notice_printed IS FALSE.
+LOCAL prev_phys_warp IS 1.0.
+LOCAL s2_pid_reset_time IS 0.0.
 LOCAL mission_active IS TRUE.
 
 UNTIL NOT mission_active {
-    // Hard interlock: keep RCS strictly OFF until Stage 1 / Stage 2 physical separation
+    // Hard interlock: keep RCS strictly OFF until Stage 1 / Stage 2 physical separation.
+    // During S1 ascent, also suppress staged RCS modules so passive ullage mods cannot trigger RCS.
     IF fsm["current_state"] = "ST_PRELAUNCH" OR
        fsm["current_state"] = "ST_ASCENT_VERTICAL" OR
-       fsm["current_state"] = "ST_ASCENT_GRAVITY_TURN" OR
-       fsm["current_state"] = "ST_WAIT_STAGING" {
+       fsm["current_state"] = "ST_ASCENT_GRAVITY_TURN" {
+        suppress_active_rcs_modules(s1_suppressed_rcs).
+        IF RCS { RCS OFF. }
+    } ELSE IF fsm["current_state"] = "ST_WAIT_STAGING" {
         IF RCS { RCS OFF. }
     }
 
@@ -214,7 +256,14 @@ UNTIL NOT mission_active {
             SET ascent_throttle TO 1.0.
             WAIT 0.1.
             STAGE.
-            WAIT profile["IGNITION_WAIT"].
+            suppress_active_rcs_modules(s1_suppressed_rcs).
+            IF RCS { RCS OFF. }
+            LOCAL ign_start IS TIME:SECONDS.
+            UNTIL TIME:SECONDS - ign_start >= profile["IGNITION_WAIT"] {
+                suppress_active_rcs_modules(s1_suppressed_rcs).
+                IF RCS { RCS OFF. }
+                WAIT 0.02.
+            }
             log_info("ASCENT", "First stage ignition. Lift-off!").
             transition_fsm(fsm, "ST_ASCENT_VERTICAL").
         } ELSE {
@@ -293,6 +342,11 @@ UNTIL NOT mission_active {
         SET ascent_throttle TO 0.0.
         SET ascent_steering TO meco_hold_attitude.
 
+        // Re-arm suppressed S1 RCS once throttle has been zeroed for >= 0.2 s
+        IF s1_suppressed_rcs:LENGTH > 0 AND (TIME:SECONDS - meco_time) >= 0.2 {
+            restore_suppressed_rcs_modules(s1_suppressed_rcs).
+        }
+
         IF NOT wait_notice_printed {
             log_info("ASCENT", "MECO attitude locked. Wait 1s for thrust tail-off then press SPACE to stage.").
             SET wait_notice_printed TO TRUE.
@@ -309,6 +363,7 @@ UNTIL NOT mission_active {
                 SET s2_sep_time TO TIME:SECONDS.
                 SET s2_ignited TO FALSE.
                 configure_s2_upeg_steering().
+                disable_s2_gimbal_roll().
                 log_info("ASCENT", "S2 separation detected. Ullage active, clearing interstage...").
                 transition_fsm(fsm, "ST_S2_CLEARANCE").
             } ELSE {
@@ -347,6 +402,7 @@ UNTIL NOT mission_active {
 
             IF clear_elapsed >= clear_wait + staging["S2_IGNITION_WAIT"] {
                 SET SHIP:CONTROL:FORE TO 0.0.
+                disable_s2_gimbal_roll().
                 SET upeg_state TO init_upeg(tgt_orbit, cfg["UPEG"]["MAX_BURN_TIME"]).
                 log_info("ASCENT", "MVac thrust stable. Handing over to UPEG closed-loop guidance.").
                 transition_fsm(fsm, "ST_S2_UPEG").
@@ -358,6 +414,32 @@ UNTIL NOT mission_active {
         LOCAL s2_tgo IS upeg_state["t_go"].
         SET ascent_throttle TO clamp((s2_tgo - 1.0) / 3.5, 0.01, 1.0).
         SET ascent_steering TO step_upeg_guidance(upeg_state, dt).
+
+        // Physics-warp disturbance guard & TorquePI integral-windup purge
+        LOCAL cur_phys_warp IS 1.0.
+        IF KUNIVERSE:TIMEWARP:MODE = "PHYSICS" {
+            SET cur_phys_warp TO KUNIVERSE:TIMEWARP:RATE.
+        }
+        LOCAL s2_att_err IS VANG(SHIP:FACING:VECTOR, ascent_steering:VECTOR).
+        LOCAL s2_ang_rate IS SHIP:ANGULARVEL:MAG.
+
+        IF cur_phys_warp > 1.05 AND (s2_att_err > 15.0 OR s2_ang_rate > 0.12) {
+            KUNIVERSE:TIMEWARP:CANCELWARP().
+            STEERINGMANAGER:RESETPIDS().
+            IF (TIME:SECONDS - s2_pid_reset_time) > 1.0 {
+                log_warn("ASCENT", "S2 attitude disturbance under physics warp (err " +
+                                   ROUND(s2_att_err, 1) + " deg); auto-dropped to 1x.").
+            }
+            SET s2_pid_reset_time TO TIME:SECONDS.
+        } ELSE IF prev_phys_warp > 1.05 AND cur_phys_warp <= 1.05 {
+            STEERINGMANAGER:RESETPIDS().
+            SET s2_pid_reset_time TO TIME:SECONDS.
+        } ELSE IF s2_att_err > 55.0 AND (TIME:SECONDS - s2_pid_reset_time) > 4.0 {
+            STEERINGMANAGER:RESETPIDS().
+            SET s2_pid_reset_time TO TIME:SECONDS.
+            log_warn("ASCENT", "Severe S2 attitude upset (" + ROUND(s2_att_err, 1) + " deg); steering PIDs reset.").
+        }
+        SET prev_phys_warp TO cur_phys_warp.
 
         IF staging["FAIRING_REMINDER_ALT"] > 0.0 AND
            SHIP:ALTITUDE > staging["FAIRING_REMINDER_ALT"] AND
@@ -398,6 +480,7 @@ UNTIL NOT mission_active {
     WAIT 0.02.
 }
 
+restore_suppressed_rcs_modules(s1_suppressed_rcs).
 SET SHIP:CONTROL:FORE TO 0.0.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.0.
 SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
