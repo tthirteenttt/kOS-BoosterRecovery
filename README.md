@@ -23,6 +23,7 @@ All custom patches and the reference vessel required to match the calibrated aer
 - `Ships/VAB/Falcon9forRecovery.craft` — Reference Falcon 9 Block 5 craft file
 
 ### Optional Mods
+- **[ASDS-Manager](https://github.com/tthirteenttt/ASDS-Manager)** — recommended companion mod for automatic `asds_predicted.ks` sync, remote ASDS deployment, and kinematic deck locking
 - **Trajectories** — visual unpowered impact cross-check
 - **Physics Range Extender (PRE)** — keeps ASDS barge loaded at longer ranges
 - **BetterTimeWarp** — fully compatible with `lan_window.ks` live `RATELIST` auto-warp
@@ -81,6 +82,10 @@ You do **not** have to use the exact bundled `Falcon9forRecovery.craft` (differe
 
 ### Step 1: Configure Mission
 - Edit `Ships/Script/config/ascent_config.ks`: set `TARGET_ORBIT` (`PERIAPSIS`, `APOAPSIS`, `INCLINATION`, `LAN_MODE`), `MECO_MASS`, `TARGET_PITCH_END`, and `RECOVERY_MODE` (`"ASDS"` or `"RTLS"`).
+  - **Recommended conservative `MECO_MASS` baseline** (excluding launch clamps):
+    - **ASDS**: `170 t + payload mass`
+    - **RTLS**: `210 t + payload mass`
+  - Fine-tune `MECO_MASS` using the Stage 1 fuel margin and Stage 2 delta-V checks printed by `estimate.ks`.
 - Edit `Ships/Script/config/recovery_config.ks`: ensure `RECOVERY_MODE` matches `ascent_config.ks`. For ASDS, `LANDING_SITE` reads `0:/config/asds_predicted.ks` automatically; for RTLS, set your landing pad coordinates.
 
 ### Step 2: Run Pre-flight Digital Twin (`estimate.ks`)
