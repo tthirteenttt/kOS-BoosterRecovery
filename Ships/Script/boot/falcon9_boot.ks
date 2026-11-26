@@ -1,5 +1,5 @@
 // ============================================================================
-// kOS-BoosterRecovery - Falcon 9 Bootloader (Informational Menu Only)
+// kOS-Falcon-GNC - Falcon 9 Bootloader (Informational Menu Only)
 // ----------------------------------------------------------------------------
 // FMRS-safe design: never auto-runs flight scripts or holds control locks.
 // All entry scripts run cleanly from Archive (0:/):

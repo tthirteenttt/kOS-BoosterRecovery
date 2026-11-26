@@ -1,4 +1,4 @@
-# kOS-BoosterRecovery
+# kOS-Falcon-GNC
 
 Autonomous Falcon 9 Block 5 (`Ghidorah 9`) launch, closed-loop upper-stage orbital insertion (UPEG), and first-stage booster recovery (ASDS / RTLS) autopilot suite for **Kerbal Space Program 1 (1.12.x)** under **RSS / RO / FAR**.
 
