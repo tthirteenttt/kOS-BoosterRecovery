@@ -34,42 +34,75 @@ FUNCTION init_rcs_controller_state {
 }
 
 FUNCTION manage_rcs_by_dynamic_pressure {
-    PARAMETER q_cutoff, steer_target IS V(0,0,0).
+    PARAMETER q_cutoff, steer_target IS V(0,0,0), was_on IS TRUE.
 
-    IF SHIP:ALTITUDE > 50000.0 {
+    LOCAL q_off IS MAX(0.03, q_cutoff).
+    LOCAL q_on IS MAX(0.02, q_off * 0.67).
+    LOCAL dyn_q IS SHIP:Q.
+
+    LOCAL fore_vec IS SHIP:FACING:VECTOR.
+    LOCAL ang_vel IS SHIP:ANGULARVEL.
+    LOCAL roll_rate_deg IS ABS((ang_vel * fore_vec) * (180.0 / CONSTANT:PI)).
+    LOCAL py_rate_deg IS vxcl(fore_vec, ang_vel):MAG * (180.0 / CONSTANT:PI).
+    LOCAL att_err IS 0.0.
+    IF steer_target:MAG > 0.001 {
+        SET att_err TO VANG(fore_vec, steer_target).
+    }
+
+    // 1. High-altitude rarefied atmosphere or low dynamic pressure (with hysteresis)
+    IF SHIP:ALTITUDE > 50000.0 OR dyn_q < q_on {
         set_rcs_state(TRUE).
         RETURN TRUE.
     }
-    IF steer_target:MAG > 0.001 {
-        LOCAL att_err IS VANG(SHIP:FACING:VECTOR, steer_target).
-        IF att_err > 10.0 {
-            set_rcs_state(TRUE).
-            RETURN TRUE.
+
+    // 2. Grid-fin dominant regime: pitch/yaw large-upset guard + roll-rate guard (grid fins rollaxis=0)
+    LOCAL want_on IS was_on.
+    IF was_on {
+        IF dyn_q >= q_off AND att_err < 12.0 AND py_rate_deg < 8.0 AND roll_rate_deg < 4.0 {
+            SET want_on TO FALSE.
+        }
+    } ELSE {
+        IF att_err > 20.0 OR py_rate_deg > 18.0 OR roll_rate_deg > 12.0 {
+            SET want_on TO TRUE.
         }
     }
-    IF SHIP:Q < q_cutoff {
-        set_rcs_state(TRUE).
-        RETURN TRUE.
-    }
-    set_rcs_state(FALSE).
-    RETURN FALSE.
+
+    set_rcs_state(want_on).
+    RETURN want_on.
 }
 
 FUNCTION manage_rcs_high_alt {
     PARAMETER cur_state, q_cutoff, high_steer_target, aero_steer_target, rcs_state, rec_mode IS "ASDS", eb_start_alt IS 68000.0.
 
     IF cur_state = "ST_AERO_GLIDE" {
-        LOCAL low_on IS manage_rcs_by_dynamic_pressure(q_cutoff, aero_steer_target).
+        LOCAL low_on IS manage_rcs_by_dynamic_pressure(q_cutoff, aero_steer_target, rcs_state["ACTIVE"]).
         SET rcs_state["ACTIVE"] TO low_on.
         RETURN low_on.
     }
     IF cur_state = "ST_LANDING_BURN" {
-        LOCAL roll_deg_s IS ABS((SHIP:ANGULARVEL * SHIP:FACING:VECTOR) * (180.0 / CONSTANT:PI)).
+        LOCAL fore_l IS SHIP:FACING:VECTOR.
+        LOCAL roll_deg_s IS ABS((SHIP:ANGULARVEL * fore_l) * (180.0 / CONSTANT:PI)).
         LOCAL land_att_err IS 0.0.
         IF aero_steer_target:MAG > 0.001 {
-            SET land_att_err TO VANG(SHIP:FACING:VECTOR, aero_steer_target).
+            SET land_att_err TO VANG(fore_l, aero_steer_target).
         }
-        LOCAL land_rcs IS (SHIP:THRUST < 100.0) OR (SHIP:Q < 0.012) OR (land_att_err > 4.5) OR (roll_deg_s > 6.0).
+        LOCAL dyn_q_l IS SHIP:Q.
+        LOCAL was_land_on IS rcs_state["ACTIVE"].
+        LOCAL land_rcs IS was_land_on.
+
+        // Re-engage RCS at low speed (q < 0.015 atm, ~V < 50 m/s ASL) as grid fins lose authority,
+        // or during spool-up if dynamic pressure is already low.
+        IF dyn_q_l < 0.015 OR (SHIP:THRUST < 100.0 AND dyn_q_l < 0.06) {
+            SET land_rcs TO TRUE.
+        } ELSE IF was_land_on {
+            IF dyn_q_l >= 0.022 AND land_att_err < 4.5 AND roll_deg_s < 3.0 {
+                SET land_rcs TO FALSE.
+            }
+        } ELSE {
+            IF land_att_err > 9.0 OR roll_deg_s > 8.0 {
+                SET land_rcs TO TRUE.
+            }
+        }
         set_rcs_state(land_rcs).
         SET rcs_state["ACTIVE"] TO land_rcs.
         RETURN land_rcs.

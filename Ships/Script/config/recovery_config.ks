@@ -69,7 +69,7 @@ SET RECOVERY_CONFIG TO LEXICON(
         "STEER_SLEW_ALPHA", 0.2,       // Low-pass filter alpha (referenced to 50 Hz dt = 0.02 s)
         "DEADBAND_M", 2.0,             // Horizontal miss deadband (m)
         "MIN_Q_FOR_GLIDE", 0.003,      // Minimum dynamic pressure (atm) to enable aero steering
-        "RCS_Q_CUTOFF", 0.20           // Dynamic pressure (atm) above which glide RCS turns off
+        "RCS_Q_CUTOFF", 0.09           // Dynamic pressure (atm) above which glide RCS turns off (hysteresis ON < 0.06)
     ),
 
     // Terminal Hoverslam guidance parameters (calibrated from in-game FAR flight data).
@@ -123,7 +123,7 @@ SET RECOVERY_CONFIG TO LEXICON(
         "EB_MAX_SAFE_SPEED", 1250.0,
         "EB_TAILOFF_TAU_S", 0.35,
         "EB_MIN_LANDING_PROP_T", 4.6,
-        "GLIDE_RCS_Q_CUTOFF", 0.20,
+        "GLIDE_RCS_Q_CUTOFF", 0.09,
         "USE_AUTH_NORM", TRUE,
         "Q_SCALE_KPA", 0.0,
         "AUTH_MIN_M", 120.0,
@@ -146,7 +146,7 @@ SET RECOVERY_CONFIG TO LEXICON(
         "EB_MAX_SAFE_SPEED", 1050.0,
         "EB_TAILOFF_TAU_S", 0.35,
         "EB_MIN_LANDING_PROP_T", 4.6,
-        "GLIDE_RCS_Q_CUTOFF", 0.25,
+        "GLIDE_RCS_Q_CUTOFF", 0.09,
         "USE_AUTH_NORM", TRUE,
         "Q_SCALE_KPA", 0.0,
         "AUTH_MIN_M", 120.0,

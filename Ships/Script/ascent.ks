@@ -16,6 +16,7 @@ RUNONCEPATH("0:/lib/guidance/predictor_rk4.ks").
 RUNONCEPATH("0:/lib/guidance/asds_calculator.ks").
 RUNONCEPATH("0:/lib/telemetry/hud_display.ks").
 RUNONCEPATH("0:/lib/control/engine_manager.ks").
+RUNONCEPATH("0:/lib/control/gridfin_mixer.ks").
 RUNPATH("0:/config/ascent_config.ks").
 
 // Singularity-free 3D ascent attitude from 90 deg vertical to 0 deg horizontal
@@ -65,13 +66,16 @@ FUNCTION disable_s2_gimbal_roll {
 
 // Suppress staged S1 RCS modules during ascent burn so passive mods (e.g. MechJeb AutoRCSUllaging)
 // cannot re-enable RCS during engine spool-up; track exact part UIDs to restore safely at MECO.
+// Guard with ISTYPE("RCS") because hybrid engine+RCS payload parts appear as EngineValue in SHIP:RCS.
 FUNCTION suppress_active_rcs_modules {
     PARAMETER suppressed_uids.
     FOR rcs_item IN SHIP:RCS {
-        IF rcs_item:ENABLED {
-            SET rcs_item:ENABLED TO FALSE.
-            IF NOT suppressed_uids:CONTAINS(rcs_item:UID) {
-                suppressed_uids:ADD(rcs_item:UID).
+        IF rcs_item:ISTYPE("RCS") AND rcs_item:HASSUFFIX("ENABLED") {
+            IF rcs_item:ENABLED {
+                SET rcs_item:ENABLED TO FALSE.
+                IF NOT suppressed_uids:CONTAINS(rcs_item:UID) {
+                    suppressed_uids:ADD(rcs_item:UID).
+                }
             }
         }
     }
@@ -81,7 +85,7 @@ FUNCTION restore_suppressed_rcs_modules {
     PARAMETER suppressed_uids.
     IF suppressed_uids:LENGTH = 0 { RETURN. }
     FOR rcs_item IN SHIP:RCS {
-        IF suppressed_uids:CONTAINS(rcs_item:UID) {
+        IF rcs_item:ISTYPE("RCS") AND rcs_item:HASSUFFIX("ENABLED") AND suppressed_uids:CONTAINS(rcs_item:UID) {
             SET rcs_item:ENABLED TO TRUE.
         }
     }
@@ -180,6 +184,7 @@ SET CONFIG:IPU TO 2000.
 LOCAL s1_suppressed_rcs IS LIST().
 suppress_active_rcs_modules(s1_suppressed_rcs).
 IF RCS { RCS OFF. }
+set_gridfin_deflection(0.0).
 
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.0.
 configure_s1_ascent_steering().

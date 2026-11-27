@@ -79,7 +79,7 @@ FUNCTION resolve_mode_profile {
             "EB_MAX_SAFE_SPEED", 1050.0,
             "EB_TAILOFF_TAU_S", 0.35,
             "EB_MIN_LANDING_PROP_T", 4.6,
-            "GLIDE_RCS_Q_CUTOFF", 0.25,
+            "GLIDE_RCS_Q_CUTOFF", 0.09,
             "GLIDE_PRED_DT", 2.0,
             "GLIDE_PRED_STEPS", 240,
             "USE_AUTH_NORM", TRUE,
@@ -110,7 +110,7 @@ FUNCTION resolve_mode_profile {
         "GLIDE_DOWN_KP", 22.0,
         "GLIDE_CROSS_KP", 22.0,
         "GLIDE_MAX_AOA", 16.0,
-        "GLIDE_RCS_Q_CUTOFF", 0.20,
+        "GLIDE_RCS_Q_CUTOFF", 0.09,
         "GLIDE_PRED_DT", 2.0,
         "GLIDE_PRED_STEPS", 240
     ).
@@ -185,8 +185,10 @@ IF initial_state = "ST_AERO_GLIDE" {
 init_engine_manager(act_cfg["ENGINE_MODE_AT_START"]).
 // Ensure booster RCS modules are armed (guards against rapid staging < 0.2 s after MECO)
 FOR rcs_item IN SHIP:RCS {
-    IF NOT rcs_item:ENABLED {
-        SET rcs_item:ENABLED TO TRUE.
+    IF rcs_item:ISTYPE("RCS") AND rcs_item:HASSUFFIX("ENABLED") {
+        IF NOT rcs_item:ENABLED {
+            SET rcs_item:ENABLED TO TRUE.
+        }
     }
 }
 IF recovery_mode = "RTLS" AND initial_state = "ST_FLIP" {
@@ -228,6 +230,9 @@ LOCAL pred_geo IS SHIP:GEOPOSITION.
 LOCAL pred_ok IS FALSE.
 LOCAL pred_warned IS FALSE.
 LOCAL fins_deployed IS (initial_state = "ST_AERO_GLIDE" OR initial_state = "ST_LANDING_BURN").
+IF fins_deployed {
+    set_gridfin_deflection(25.0, act_cfg["GRIDFIN_PART_KEYWORD"]).
+}
 LOCAL legs_deployed IS FALSE.
 LOCAL entry_mode_set IS (initial_state = "ST_AERO_GLIDE" OR initial_state = "ST_LANDING_BURN").
 LOCAL landing_mode_set IS (initial_state = "ST_LANDING_BURN").

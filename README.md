@@ -8,22 +8,32 @@ Autonomous Falcon 9 Block 5 (`Ghidorah 9`) launch, closed-loop upper-stage orbit
 
 ### Required Mods
 - **Kerbal Space Program**: 1.12.x (tested on 1.12.5)
+- **ModuleManager**: >= 4.2.0
 - **kOS (Kerbal Operating System)**: >= 1.4.0
 - **Real Solar System (RSS)** / **Sol**
 - **Realism Overhaul (RO)** (including RealFuels)
 - **Ferram Aerospace Research Continued (FAR)**
-- **Tundra Exploration** (Falcon 9 Block 5 / Ghidorah 9)
+- **Tundra Exploration** (Falcon 9 / Heavy, Falcon 1, Dragon 1/2/XL, Launch Clamps)
 - **Kerbal Reusability Expansion (KRE)** (Titanium Grid Fins & Landing Legs)
 - **FMRS (Flight Manager for Reusable Stages)** — required to switch back to Stage 1 after Stage 2 reaches orbit
 
-### Bundled Custom Configs & Example Craft (Included in This Release)
-All custom patches and the reference vessel required to match the calibrated aerodynamics, thrust curves, and staging are bundled inside this release:
-- `GameData/TundraMods/` — Custom Realism Overhaul configurations and textures for Tundra Exploration (`RO_TE_Falcon_9.cfg`, Dragon configs, launch clamps, plumes, etc.)
-- `GameData/KerbalReusabilityExpansion/` — Custom RO patch (`RO_KRE.cfg`) and FAR-enabled Titanium Grid Fin part configuration (`GridFinsTitanium/GridFin Titanium M.cfg`)
+### Bundled Standalone RO/FAR ModuleManager Patch Suite & Example Craft
+Because upstream Realism Overhaul does not bundle Tundra Exploration or KRE configs by default, this release includes a complete, **clean-room, MIT-licensed, non-destructive** ModuleManager patch suite under `GameData/kOS-Falcon-GNC/` (zero stock/RO/KRE/Tundra files are overwritten — fully CKAN-compatible). All Layer 1 base RO patches guard with `:HAS[~RSSROConfig[True]]` so they coexist cleanly with any third-party RO pack, while Layer 2 enforces exact GNC calibration parity:
+
+- `Patches/01_RO_Tundra_Falcon9_FH.cfg` — Full RO configs for Falcon 9 Block 4/5, Falcon Heavy, Octaweb/Merlin 1D/MVac (standard & short nozzle), CGT, fairings, and rideshare adapters (cross-verified against the SpaceX Falcon User's Guide Mar 2025 & official RO `Merlin1_Config.cfg`)
+- `Patches/02_RO_Tundra_Falcon1_F9v10.cfg` — Full RO configs for Falcon 1 (`Merlin1A`/`1B`/`1C` + `Kestrel`) and Falcon 9 v1.0 (`Bagorah 9`: 9x `Merlin1C` + `Merlin1CVac`)
+- `Patches/03_RO_Tundra_LaunchClamps.cfg` — Full RO configs for SLC-40, LC-39A, and SLC-4E Transporter Erectors with cryogenic boiloff & power replenishment
+- `Patches/04_RO_Tundra_Dragon.cfg` — Full RO configs for Dragon 1 (`GiganV2`), Crew/Cargo/I4 Dragon 2 (`RodanV2`: 8x SuperDraco, 16x 400 N Draco, PICA-3 heat shield, RealChute 2x drogues + 4x 35 m mains, 2.0 kW trunk solar array), and Dragon XL (`GiganXL`)
+- `Patches/05_RO_Tundra_Technologies.cfg` — Optional RO configs for TundraTechnologies (`Haven-1` Gaira station, Iridium NEXT, New Horizons, Starlink dish; guarded by `:NEEDS[TundraTechnologies]`)
+- `Patches/06_RO_KRE.cfg` — Full RO configs for all 30 Kerbal Reusability Expansion parts (Aluminum & Titanium Grid Fins, Falcon/Mk2/Aero/Hex/Shepard landing legs, BoosterWing, CGT, KRE SuperDraco/Dragon capsule parts)
+- `Patches/07_GNC_FAR_Overrides.cfg` — Layer 2 GNC calibration parity guarantees (`:BEFORE[FerramAerospaceResearch]` FAR conversion for `Grid Fin M Titanium`, 5 deg S1 TVC gimbal, 5 ignitions/TEATEB, interstage separation force, calibrated S1/S2 cold-gas RCS, and UHF RealAntennas)
+- `Patches/08_RO_Waterfall.cfg` — Optional Waterfall plume scaling & RO integration (`:NEEDS[Waterfall]`): rescales native TE/TT plumes to 1.48x/1.344x, softens Stage 1 `TE2_19_F9_CGT` cold-gas nitrogen into a realistic translucent mist cone, and adds `ROWaterfall` plumes for single M1D, F9 v1.0 MVac, Dragon 1, KRE SuperDraco/CGT, and TT satellites
+- `Textures/{dds,png}/` — Real-world SpaceX / Falcon / Dragon decal textures (derived from [nessux/TundraExploration4RO](https://github.com/nessux/TundraExploration4RO), MIT License)
 - `Ships/VAB/Falcon9forRecovery.craft` — Reference Falcon 9 Block 5 craft file
 
 ### Optional Mods
 - **[ASDS-Manager](https://github.com/tthirteenttt/ASDS-Manager)** — recommended companion mod for automatic `asds_predicted.ks` sync, remote ASDS deployment, and kinematic deck locking
+- **RealChute** / **RealAntennas** / **Waterfall** / **NearFutureSolar** — natively supported by the bundled RO patches
 - **Trajectories** — visual unpowered impact cross-check
 - **Physics Range Extender (PRE)** — keeps ASDS barge loaded at longer ranges
 - **BetterTimeWarp** — fully compatible with `lan_window.ks` live `RATELIST` auto-warp
@@ -37,8 +47,20 @@ Release/
 ├── LICENSE
 ├── README.md
 ├── GameData/
-│   ├── KerbalReusabilityExpansion/   # Custom KRE RO config & FAR grid fin config
-│   └── TundraMods/                   # Custom Tundra Exploration RO configs & decals
+│   └── kOS-Falcon-GNC/
+│       ├── kOS-Falcon-GNC.version               # KSP-AVC / CKAN version metadata
+│       ├── Patches/
+│       │   ├── 01_RO_Tundra_Falcon9_FH.cfg      # RO Falcon 9 Block 4/5 & Falcon Heavy
+│       │   ├── 02_RO_Tundra_Falcon1_F9v10.cfg   # RO Falcon 1 & Falcon 9 v1.0
+│       │   ├── 03_RO_Tundra_LaunchClamps.cfg    # RO Transporter Erector launch clamps
+│       │   ├── 04_RO_Tundra_Dragon.cfg          # RO Dragon 1, Dragon 2 & Dragon XL
+│       │   ├── 05_RO_Tundra_Technologies.cfg    # Optional RO TundraTechnologies
+│       │   ├── 06_RO_KRE.cfg                    # RO Kerbal Reusability Expansion
+│       │   ├── 07_GNC_FAR_Overrides.cfg         # FAR Grid Fin & GNC parity overrides
+│       │   └── 08_RO_Waterfall.cfg              # Optional RO-scaled Waterfall plumes
+│       └── Textures/
+│           ├── dds/                             # Falcon 9 / Heavy / F1 decals (MIT)
+│           └── png/                             # Bagorah 9 / Dragon / US Flag decals (MIT)
 └── Ships/
     ├── Script/                       # kOS Archive root (0:/)
     │   ├── estimate.ks               # [1/3] Pre-flight 3D-RK4 digital twin predictor
@@ -58,7 +80,7 @@ Release/
 ```
 
 ### Installation Steps
-1. Copy `GameData/KerbalReusabilityExpansion/` and `GameData/TundraMods/` into `<KSP_ROOT>/GameData/` (overwrite existing KRE grid fin cfg if prompted so the FAR control surface configuration takes effect).
+1. Copy `GameData/kOS-Falcon-GNC/` into `<KSP_ROOT>/GameData/` (no existing mod files are overwritten).
 2. Copy everything inside `Ships/Script/` directly into `<KSP_ROOT>/Ships/Script/` (this maps to kOS Archive `0:/`).
 3. Copy `Ships/VAB/Falcon9forRecovery.craft` into `<KSP_ROOT>/saves/<YourSave>/Ships/VAB/` (or `<KSP_ROOT>/Ships/VAB/`).
 
@@ -114,7 +136,7 @@ After SECO, switch back to Stage 1 via **FMRS** and run on the Stage 1 kOS termi
 SWITCH TO 0.
 RUN recovery.
 ```
-- Fully autonomous flip, RTLS boostback (when in RTLS mode), high-altitude coast, 3-engine entry burn, grid-fin aerodynamic glide, and single-engine Hoverslam upright touchdown.
+- Fully autonomous flip, RTLS boostback (when in RTLS mode), high-altitude coast, 3-engine entry burn, grid-fin aerodynamic glide (with stowed-deflection lock during ascent & re-arm upon deployment), and single-engine Hoverslam upright touchdown.
 
 ---
 
@@ -128,7 +150,6 @@ RUN recovery.
 ### Known Issues
 - **Crew/Cargo Dragon Payloads (`estimate.ks`)**: When launching a Dragon capsule as the payload, the ASDS coordinates predicted by `estimate.ks` are not reliable due to aerodynamic/mass-topology differences from standard fairing stacks. Use **RTLS mode** for Dragon missions (consistent with real-world Dragon flights; no fix is planned).
 - **High Gravity Losses on Certain Profiles**: Certain combinations of target inclination and open-loop ascent pitch profile (`TARGET_PITCH_END`, `PITCH_END_ALT`, `PITCH_CURVE_EXP`) can result in higher-than-nominal Stage 2 gravity losses. Adjust `TARGET_PITCH_END` and `MECO_MASS` using `estimate.ks` envelope feedback.
-- **Stowed Grid Fin Deflection**: Stage 1 grid fins can still deflect and generate aerodynamic torque even when folded/stowed (inherent to the KRE/FAR control-surface setup).
 - **High Physics Warp Accuracy Degradation**: Excessive physics warp multipliers (e.g., `3x`–`4x`) can reduce both Stage 1 booster recovery precision and Stage 2 orbital insertion accuracy (and induce structural oscillation on multi-part payloads). Staying within `1x`–`2x` physics warp is recommended (`ascent.ks` also auto-drops physics warp to `1x` if a Stage 2 attitude upset is detected).
 
 ---
@@ -144,5 +165,6 @@ RUN recovery.
 ## 7. License & Credits
 
 - Released under the **MIT License** (see [LICENSE](LICENSE)).
-- Includes modified grid fin and RO configurations based on **Kerbal Reusability Expansion (KRE)** by EmbersArc (MIT License).
-- Developed with assistance from **Google Gemini** for GNC modeling, flight debugging, and documentation.
+- Clean-room Realism Overhaul & FAR ModuleManager patches target **Tundra Exploration** (by Damonvv), **Tundra Technologies**, **Kerbal Reusability Expansion (KRE)** (by EmbersArc), **Realism Overhaul**, and **Ferram Aerospace Research Continued** without overwriting any upstream mod files.
+- Bundled SpaceX / Falcon / Dragon decal textures in `GameData/kOS-Falcon-GNC/Textures/` are modified from **[nessux/TundraExploration4RO](https://github.com/nessux/TundraExploration4RO)** under the **MIT License**.
+- Developed with assistance from **Google Gemini** for GNC modeling, aerospace data verification, ModuleManager patching, and documentation.

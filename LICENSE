@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 kOS-BoosterRecovery Contributors
+Copyright (c) 2026 tthirteenttt (kOS-Falcon-GNC Contributors)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,8 @@ SOFTWARE.
 -------------------------------------------------------------------------------
 Third-Party Notice
 -------------------------------------------------------------------------------
-This release bundles modified configuration files derived from:
-  - Kerbal Reusability Expansion (KRE) by EmbersArc
+This release bundles modified SpaceX / Falcon / Dragon decal textures under
+GameData/kOS-Falcon-GNC/Textures/ derived from:
+  - TundraExploration4RO by nessux
+    Repository: https://github.com/nessux/TundraExploration4RO
     License: MIT License
-    Included under GameData/KerbalReusabilityExpansion/
