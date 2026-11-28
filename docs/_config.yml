@@ -1,0 +1,24 @@
+title: kOS-Falcon-GNC
+description: Autonomous Falcon 9 Block 5 launch, UPEG orbital insertion, and ASDS/RTLS booster recovery GNC suite for KSP RSS/RO/FAR.
+remote_theme: just-the-docs/just-the-docs
+color_scheme: dark
+url: https://tthirteenttt.github.io
+baseurl: /kOS-Falcon-GNC
+
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  "GitHub":
+    - "https://github.com/tthirteenttt/kOS-Falcon-GNC"
+  "Releases":
+    - "https://github.com/tthirteenttt/kOS-Falcon-GNC/releases"
+  "Demo Video":
+    - "https://youtu.be/fHC-j8KP-JU"
+
+aux_links_new_tab: true
+nav_external_links:
+  - title: "ASDS-Manager (Companion Mod)"
+    url: "https://github.com/tthirteenttt/ASDS-Manager"
+
+footer_content: "Released under the <a href=\"https://github.com/tthirteenttt/kOS-Falcon-GNC/blob/main/LICENSE\">MIT License</a>."
